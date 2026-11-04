@@ -1,263 +1,431 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="theme-color" content="#100707">
-<title>DOOM: THE SATAN</title>
+<meta name="theme-color" content="#100604">
+<title>DOOM: THE SATAN - ULTRA EDITION</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#100707;color:white;font-family:Arial;overflow:hidden;touch-action:none}
-canvas{width:100vw;height:100dvh;display:block}
-#hud{position:fixed;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;font-weight:bold;text-shadow:2px 2px 4px black;pointer-events:none;font-size:14px}
-#controls{position:fixed;bottom:15px;left:0;right:0;display:flex;justify-content:space-between;align-items:end;padding:0 12px}
-.pad{display:grid;grid-template-columns:repeat(3,52px);gap:5px}
-button{height:52px;width:52px;background:#391710dd;border:2px solid #b44b29;color:white;border-radius:12px;font-size:20px;font-weight:bold;touch-action:none}
-button:active{background:#bd341b}
-#actions{display:flex;gap:5px;align-items:end}
-#fire{width:72px;height:72px;border-radius:50%;background:#a51d12;font-size:15px}
-#screen{position:fixed;inset:0;background:#100707ed;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;gap:12px}
-#screen h1{font-size:48px;color:#e43a1e;text-shadow:0 0 22px red;margin:0}
-#screen button{width:180px;height:60px;background:#a52516}
-#screen p{color:#ddd;line-height:1.5}
+body{margin:0;background:#100604;color:white;font-family:Arial;overflow:hidden;touch-action:none}
+canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+#hud{position:absolute;top:10px;left:12px;right:12px;display:flex;justify-content:space-between;font-size:13px;font-weight:bold;text-shadow:0 2px 5px black;pointer-events:none}
+#controls{position:absolute;bottom:12px;left:0;right:0;display:flex;justify-content:space-between;align-items:end;padding:0 12px;pointer-events:none}
+button{background:#38140fdd;color:white;border:2px solid #a94b30;border-radius:12px;font-weight:bold;touch-action:none;pointer-events:auto}
+button:active{background:#bd321c}
+.pad{display:grid;grid-template-columns:repeat(3,49px);gap:5px}
+.pad button{height:49px;font-size:20px}
+.actions{display:flex;gap:5px;align-items:end;flex-wrap:wrap;justify-content:end;max-width:190px}
+.actions button{width:49px;height:49px;font-size:13px}
+#fire{width:65px;height:65px;border-radius:50%;background:#a21d10}
+#use{background:#75501c}
+#screen{position:absolute;inset:0;background:radial-gradient(#40140f,#090303 75%);display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:20px;z-index:5}
+#screen h1{font-size:clamp(38px,10vw,65px);color:#e33a1b;text-shadow:0 0 25px red;margin:5px}
+#screen button{padding:17px 40px;background:#a32616;font-size:19px}
+#screen p{line-height:1.5;color:#ddd}
+#message{position:absolute;top:45%;width:100%;text-align:center;font-size:22px;font-weight:bold;color:#ffb45c;text-shadow:0 0 10px red;pointer-events:none}
+#weaponName{position:absolute;bottom:105px;right:12px;font-size:11px;color:#ddd;pointer-events:none}
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
 <div id="hud">
-<span>HP: <b id="hp">100</b></span>
-<span>DOOM: THE SATAN</span>
-<span>KILLS: <b id="kills">0</b></span>
+ <span>❤️ <b id="hp">100</b></span>
+ <span>☠ <b id="kills">0</b></span>
+ <span>FLOOR <b id="floor">1</b></span>
+ <span>🔑 <b id="key">NO</b></span>
 </div>
+<div id="message"></div>
+<div id="weaponName">PISTOL</div>
+
 <div id="controls">
-<div class="pad">
-<span></span><button id="forward">▲</button><span></span>
-<button id="left">◀</button><button id="back">▼</button><button id="right">▶</button>
+ <div class="pad">
+  <span></span><button id="forward">▲</button><span></span>
+  <button id="left">◀</button><button id="back">▼</button><button id="right">▶</button>
+ </div>
+ <div class="actions">
+  <button id="weapon">WEAPON</button>
+  <button id="use">USE</button>
+  <button id="fire">FIRE</button>
+ </div>
 </div>
-<div id="actions">
-<button id="turnL">↶</button>
-<button id="turnR">↷</button>
-<button id="fire">FIRE</button>
-</div>
-</div>
+
 <div id="screen">
-<h1>DOOM</h1>
-<h2>THE SATAN</h2>
-<p>WELCOME TO HELL<br>Survive the demon invasion.</p>
-<button id="start">START GAME</button>
+ <h1>DOOM</h1>
+ <h2>THE SATAN</h2>
+ <p>ULTRA EDITION<br>HELL HAS NO EXIT<br><br>Explore. Survive. Escape.</p>
+ <button id="start">ENTER HELL</button>
+ <p style="font-size:11px">Touch controls • Retro 3D • Multiple floors</p>
 </div>
+
 <script>
 const canvas=document.getElementById('game');
 const ctx=canvas.getContext('2d');
-let W=0,H=0;
+let W,H;
 function resize(){
  W=canvas.width=Math.floor(innerWidth*devicePixelRatio);
  H=canvas.height=Math.floor(innerHeight*devicePixelRatio);
- ctx.setTransform(1,0,0,1,0,0);
 }
 resize();
 addEventListener('resize',resize);
 
-const map=[
-"111111111111111",
-"100000000000001",
-"101110010111101",
-"100000010000001",
-"101011110110101",
-"100010000010001",
-"111010110010111",
-"100000000000001",
-"101110111011101",
-"100000000000001",
-"111111111111111"
+const maps=[
+[
+"111111111111111111",
+"100000000000000001",
+"101110011111010101",
+"100000010000000001",
+"101011010110110101",
+"100010000010000001",
+"110010111010110101",
+"100000000000000001",
+"101101110110110101",
+"100000000000000001",
+"101011011010111101",
+"100000000000000001",
+"111111111111111111"
+],
+[
+"111111111111111111",
+"100000000000000001",
+"101101110111010101",
+"100001000000000001",
+"101101011010110101",
+"100000010000000001",
+"110110010110110101",
+"100000000000000001",
+"101011111010110101",
+"100000000000000001",
+"101101000110110101",
+"100000000000000001",
+"111111111111111111"
+],
+[
+"111111111111111111",
+"100000000000000001",
+"101110110110110101",
+"100000000000000001",
+"101011011010110101",
+"100000000000000001",
+"110110110110110101",
+"100000000000000001",
+"101011011011010101",
+"100000000000000001",
+"101101101101110101",
+"100000000000000001",
+"111111111111111111"
+]
 ];
 
-let player={x:1.5,y:1.5,a:0,hp:100};
+let floor=0;
+let map=maps[0];
+let player={x:1.5,y:1.5,a:0,hp:100,hasKey:false};
 let monsters=[];
 let kills=0,started=false;
+let weapon=0,ammo=[Infinity,30,60];
 let keys={};
-const fov=Math.PI/2.7;
+let depth=[];
+let flash=0;
+const weapons=[
+ {name:"PISTOL",damage:1,range:9},
+ {name:"SHOTGUN",damage:3,range:5},
+ {name:"PLASMA",damage:2,range:12}
+];
+let doors={};
+let secret={};
 
-function wall(x,y){
- return map[Math.floor(y)]?.[Math.floor(x)]!=='0';
+function tile(x,y){
+ return map[Math.floor(y)]?.[Math.floor(x)]||"1";
 }
-function distance(a){
- let d=0.02;
+function wall(x,y){
+ let t=tile(x,y);
+ if(t==="D")return !doors[Math.floor(x)+","+Math.floor(y)];
+ if(t==="S")return !secret[Math.floor(x)+","+Math.floor(y)];
+ return t==="1";
+}
+function cast(a){
+ let d=.025;
  while(d<20){
-  let x=player.x+Math.cos(a)*d;
-  let y=player.y+Math.sin(a)*d;
-  if(wall(x,y))return d;
-  d+=0.025;
+  if(wall(player.x+Math.cos(a)*d,player.y+Math.sin(a)*d))return d;
+  d+=.025;
  }
  return 20;
 }
+
 function spawn(){
  monsters=[];
- const spots=[
- [5.5,1.5],[9.5,1.5],[13.5,3.5],
- [3.5,3.5],[1.5,7.5],[6.5,7.5],
- [11.5,7.5],[8.5,9.5],[13.5,9.5]
+ let types=["imp","imp","imp","brute","brute","skull","imp","brute","skull","boss"];
+ let positions=[
+ [5.5,1.5],[9.5,3.5],[14.5,1.5],
+ [3.5,5.5],[11.5,5.5],[15.5,7.5],
+ [6.5,9.5],[12.5,9.5],[4.5,11.5],[15.5,11.5]
  ];
- spots.forEach(([x,y])=>monsters.push({x,y,alive:true}));
+ positions.forEach((p,i)=>{
+  if(i>=types.length)return;
+  monsters.push({x:p[0],y:p[1],type:types[i],hp:types[i]==="boss"?8:types[i]==="brute"?3:2,alive:true,phase:Math.random()*6});
+ });
 }
+function setupFloor(n){
+ floor=n;
+ map=maps[n];
+ player.x=1.5;player.y=1.5;player.a=0;
+ doors={};secret={};
+ spawn();
+ document.getElementById('floor').textContent=n+1;
+ say("FLOOR "+(n+1));
+}
+
+function say(t){
+ let el=document.getElementById('message');
+ el.textContent=t;
+ clearTimeout(say.timer);
+ say.timer=setTimeout(()=>el.textContent="",1700);
+}
+
 function bind(id,key){
- const b=document.getElementById(id);
+ let b=document.getElementById(id);
  b.addEventListener('pointerdown',e=>{
   e.preventDefault();keys[key]=true;
  });
- function release(){keys[key]=false}
- b.addEventListener('pointerup',release);
- b.addEventListener('pointercancel',release);
- b.addEventListener('pointerleave',release);
+ let end=()=>keys[key]=false;
+ b.addEventListener('pointerup',end);
+ b.addEventListener('pointercancel',end);
+ b.addEventListener('pointerleave',end);
 }
 bind('forward','f');
 bind('back','b');
 bind('left','l');
 bind('right','r');
-bind('turnL','tl');
-bind('turnR','tr');
+
+let lookId=null,lastX=0,lastY=0;
+canvas.addEventListener('pointerdown',e=>{
+ if(!started||e.clientX<innerWidth*.4)return;
+ lookId=e.pointerId;
+ lastX=e.clientX;
+ lastY=e.clientY;
+ canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove',e=>{
+ if(e.pointerId!==lookId||!started)return;
+ let dx=e.clientX-lastX;
+ let dy=e.clientY-lastY;
+ player.a+=dx*.006;
+ lastX=e.clientX;
+ lastY=e.clientY;
+});
+function stopLook(e){
+ if(e.pointerId===lookId)lookId=null;
+}
+canvas.addEventListener('pointerup',stopLook);
+canvas.addEventListener('pointercancel',stopLook);
+
+function move(dx,dy){
+ if(!wall(player.x+dx,player.y))player.x+=dx;
+ if(!wall(player.x,player.y+dy))player.y+=dy;
+}
 
 function update(){
  if(!started)return;
- const speed=0.045;
- if(keys.tl)player.a-=0.045;
- if(keys.tr)player.a+=0.045;
- let dx=0,dy=0;
- if(keys.f){dx+=Math.cos(player.a)*speed;dy+=Math.sin(player.a)*speed}
- if(keys.b){dx-=Math.cos(player.a)*speed;dy-=Math.sin(player.a)*speed}
- if(keys.l){dx+=Math.cos(player.a-Math.PI/2)*speed;dy+=Math.sin(player.a-Math.PI/2)*speed}
- if(keys.r){dx+=Math.cos(player.a+Math.PI/2)*speed;dy+=Math.sin(player.a+Math.PI/2)*speed}
- if(!wall(player.x+dx,player.y))player.x+=dx;
- if(!wall(player.x,player.y+dy))player.y+=dy;
+ let s=.055;
+ if(keys.f)move(Math.cos(player.a)*s,Math.sin(player.a)*s);
+ if(keys.b)move(-Math.cos(player.a)*s,-Math.sin(player.a)*s);
+ if(keys.l)move(Math.cos(player.a-Math.PI/2)*s,Math.sin(player.a-Math.PI/2)*s);
+ if(keys.r)move(Math.cos(player.a+Math.PI/2)*s,Math.sin(player.a+Math.PI/2)*s);
 
  monsters.forEach(m=>{
   if(!m.alive)return;
-  let d=Math.hypot(m.x-player.x,m.y-player.y);
-  if(d<0.65){
-   player.hp=Math.max(0,player.hp-0.12);
+  m.phase+=.07;
+  let dx=player.x-m.x,dy=player.y-m.y;
+  let d=Math.hypot(dx,dy);
+  if(d<8&&d>0.8){
+   let speed=m.type==="skull"?.025:m.type==="boss"?.008:.012;
+   let mx=dx/d*speed,my=dy/d*speed;
+   if(!wall(m.x+mx,m.y))m.x+=mx;
+   if(!wall(m.x,m.y+my))m.y+=my;
+  }
+  if(d<.8){
+   player.hp=Math.max(0,player.hp-.09);
    document.getElementById('hp').textContent=Math.floor(player.hp);
   }
  });
  if(player.hp<=0){
   started=false;
-  document.querySelector('#screen h1').textContent='GAME OVER';
-  document.querySelector('#screen p').textContent='You were defeated.';
+  document.querySelector('#screen h1').textContent="GAME OVER";
+  document.querySelector('#screen p').textContent="HELL HAS CLAIMED YOU";
   document.getElementById('screen').style.display='flex';
+ }
+ // stairs
+ if(tile(player.x,player.y)==="2"){
+  if(floor<2)setupFloor(floor+1);
+  else{
+   started=false;
+   document.querySelector('#screen h1').textContent="VICTORY";
+   document.querySelector('#screen p').textContent="YOU ESCAPED THE HELL";
+   document.getElementById('screen').style.display='flex';
+  }
  }
 }
 
 function shoot(){
  if(!started)return;
- let target=null,nearest=8;
+ if(ammo[weapon]<=0){say("NO AMMO");return;}
+ if(weapon!==0)ammo[weapon]--;
+ flash=8;
+ let target=null,best=weapons[weapon].range;
  monsters.forEach(m=>{
   if(!m.alive)return;
   let dx=m.x-player.x,dy=m.y-player.y;
   let d=Math.hypot(dx,dy);
   let a=Math.atan2(dy,dx)-player.a;
   a=Math.atan2(Math.sin(a),Math.cos(a));
-  if(Math.abs(a)<0.12&&d<nearest&&distance(Math.atan2(dy,dx))>d-0.2){
-   target=m;nearest=d;
+  if(Math.abs(a)<(weapon===1?.20:.10)&&d<best&&cast(Math.atan2(dy,dx))>d-.25){
+   target=m;best=d;
   }
  });
  if(target){
-  target.alive=false;
-  kills++;
-  document.getElementById('kills').textContent=kills;
+  target.hp-=weapons[weapon].damage;
+  if(target.hp<=0){
+   target.alive=false;kills++;
+   document.getElementById('kills').textContent=kills;
+   say("DEMON DEFEATED");
+  }else say("HIT!");
  }
 }
 document.getElementById('fire').addEventListener('pointerdown',e=>{
  e.preventDefault();shoot();
 });
+document.getElementById('weapon').onclick=()=>{
+ weapon=(weapon+1)%3;
+ document.getElementById('weaponName').textContent=weapons[weapon].name;
+ say(weapons[weapon].name);
+};
+
+function use(){
+ if(!started)return;
+ let x=Math.floor(player.x+Math.cos(player.a)*1.1);
+ let y=Math.floor(player.y+Math.sin(player.a)*1.1);
+ let t=tile(x+.5,y+.5);
+ let k=x+","+y;
+ if(t==="D"){
+  if(player.hasKey){doors[k]=true;say("DOOR OPENED");}
+  else say("KEY REQUIRED");
+ }else if(t==="S"){
+  secret[k]=true;say("SECRET ROOM!");
+ }else if(t==="k"){
+  player.hasKey=true;
+  map[y]=map[y].substring(0,x)+"0"+map[y].substring(x+1);
+  document.getElementById('key').textContent="YES";
+  say("KEY FOUND!");
+ }else say("NOTHING HERE");
+}
+document.getElementById('use').onclick=use;
 
 function draw(){
- if(started){
-  ctx.fillStyle='#251a20';
-  ctx.fillRect(0,0,W,H/2);
-  let floor=ctx.createLinearGradient(0,H/2,0,H);
-  floor.addColorStop(0,'#514039');
-  floor.addColorStop(1,'#090606');
-  ctx.fillStyle=floor;
-  ctx.fillRect(0,H/2,W,H/2);
+ ctx.fillStyle="#160b0d";
+ ctx.fillRect(0,0,W,H/2);
+ let sky=ctx.createLinearGradient(0,0,0,H/2);
+ sky.addColorStop(0,"#080509");
+ sky.addColorStop(1,"#4c1712");
+ ctx.fillStyle=sky;ctx.fillRect(0,0,W,H/2);
 
+ let floorGrad=ctx.createLinearGradient(0,H/2,0,H);
+ floorGrad.addColorStop(0,"#3c251c");
+ floorGrad.addColorStop(1,"#090303");
+ ctx.fillStyle=floorGrad;ctx.fillRect(0,H/2,W,H/2);
+
+ if(started){
+  const fov=Math.PI/2.7;
   for(let x=0;x<W;x+=3){
-   let angle=player.a+(x/W-.5)*fov;
-   let d=distance(angle)*Math.cos(angle-player.a);
-   let height=Math.min(H,H/(d+0.1));
-   let shade=Math.max(20,175-d*13);
-   ctx.fillStyle=`rgb(${shade},${shade*.42},${shade*.25})`;
-   ctx.fillRect(x,(H-height)/2,4,height);
-   ctx.fillStyle='rgba(0,0,0,.25)';
-   ctx.fillRect(x,(H-height)/2,4,3);
+   let a=player.a+(x/W-.5)*fov;
+   let d=cast(a)*Math.cos(a-player.a);
+   depth[Math.floor(x/3)]=d;
+   let h=Math.min(H,H/(d+.1));
+   let shade=Math.max(18,175-d*12);
+   let tx=player.x+Math.cos(a)*d;
+   let ty=player.y+Math.sin(a)*d;
+   let t=tile(tx,ty);
+   if(t==="D")shade*=.75;
+   ctx.fillStyle=`rgb(${shade},${shade*.40},${shade*.27})`;
+   ctx.fillRect(x,(H-h)/2,4,h);
+   ctx.fillStyle="rgba(0,0,0,.23)";
+   ctx.fillRect(x,(H-h)/2,4,3);
+   if(t==="D"){
+    ctx.fillStyle="#9b4b1e";
+    ctx.fillRect(x,(H-h)/2,3,h);
+   }
   }
 
-  let visible=monsters.filter(m=>m.alive).map(m=>{
+  monsters.filter(m=>m.alive).map(m=>{
    let dx=m.x-player.x,dy=m.y-player.y;
    let d=Math.hypot(dx,dy);
    let a=Math.atan2(dy,dx)-player.a;
    a=Math.atan2(Math.sin(a),Math.cos(a));
    return {m,d,a};
-  }).sort((a,b)=>b.d-a.d);
-
-  visible.forEach(o=>{
-   if(Math.abs(o.a)>fov/2+0.1)return;
+  }).sort((a,b)=>b.d-a.d).forEach(o=>{
+   if(Math.abs(o.a)>fov/2+.15)return;
    let sx=W/2+Math.tan(o.a)/Math.tan(fov/2)*W/2;
-   let size=Math.min(H,H/(o.d+0.1)*0.65);
+   let size=Math.min(H,H/(o.d+.1)*.65);
    let angle=Math.atan2(o.m.y-player.y,o.m.x-player.x);
-   if(distance(angle)<o.d-0.15)return;
-   let y=H/2-size*.3;
-
-   ctx.fillStyle='#48120e';
-   ctx.beginPath();
-   ctx.ellipse(sx,y+size*.55,size*.25,size*.4,0,0,Math.PI*2);
-   ctx.fill();
-
-   ctx.fillStyle='#a62a19';
-   ctx.beginPath();
-   ctx.arc(sx,y+size*.23,size*.22,0,Math.PI*2);
-   ctx.fill();
-
-   ctx.fillStyle='#ff4b1b';
-   ctx.fillRect(sx-size*.13,y+size*.2,size*.08,size*.055);
-   ctx.fillRect(sx+size*.05,y+size*.2,size*.08,size*.055);
-
-   ctx.fillStyle='#d2a08a';
-   ctx.fillRect(sx-size*.08,y+size*.34,size*.16,size*.035);
+   if(cast(angle)<o.d-.2)return;
+   let y=H/2-size*.35;
+   let m=o.m;
+   let bob=Math.sin(m.phase)*size*.025;
+   let colors={imp:"#a32b19",brute:"#574b44",skull:"#c2a68a",boss:"#5d0d17"};
+   ctx.fillStyle=colors[m.type];
+   if(m.type==="skull"){
+    ctx.beginPath();ctx.arc(sx,y+size*.32+bob,size*.25,0,Math.PI*2);ctx.fill();
+   }else{
+    ctx.beginPath();
+    ctx.ellipse(sx,y+size*.52+bob,size*(m.type==="boss"?.34:.23),size*.39,0,0,Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle="#36100c";
+    ctx.fillRect(sx-size*.2,y+size*.65+bob,size*.4,size*.2);
+   }
+   ctx.fillStyle=m.type==="boss"?"#fff000":"#ff4b13";
+   ctx.fillRect(sx-size*.13,y+size*.24+bob,size*.07,size*.045);
+   ctx.fillRect(sx+size*.06,y+size*.24+bob,size*.07,size*.045);
+   if(m.type==="boss"){
+    ctx.fillStyle="#c72a14";
+    ctx.fillRect(sx-size*.36,y+size*.08,size*.12,size*.2);
+    ctx.fillRect(sx+size*.24,y+size*.08,size*.12,size*.2);
+   }
   });
 
-  // Weapon
-  ctx.fillStyle='#25272a';
-  ctx.fillRect(W/2-35,H-105,70,105);
-  ctx.fillStyle='#888';
-  ctx.fillRect(W/2-22,H-125,44,55);
-  ctx.fillStyle='#b6381c';
-  ctx.fillRect(W/2-9,H-135,18,30);
-  ctx.fillStyle='#aaa';
-  ctx.fillRect(W/2-2,H/2-13,4,26);
-  ctx.fillRect(W/2-13,H/2-2,26,4);
-
-  if(monsters.every(m=>!m.alive)){
-   ctx.fillStyle='white';
-   ctx.font=`bold ${Math.floor(H*.045)}px Arial`;
-   ctx.textAlign='center';
-   ctx.fillText('AREA CLEARED!',W/2,H*.35);
+  // First-person weapon
+  let gunColor=["#777","#aaa","#258c83"][weapon];
+  ctx.fillStyle="#18191b";
+  ctx.fillRect(W/2-45,H-110,90,110);
+  ctx.fillStyle=gunColor;
+  ctx.fillRect(W/2-25,H-135,50,65);
+  ctx.fillStyle="#333";
+  ctx.fillRect(W/2-12,H-155,24,35);
+  if(flash>0){
+   ctx.fillStyle="#ffb32e";
+   ctx.beginPath();ctx.arc(W/2,H-160,30+Math.random()*15,0,Math.PI*2);ctx.fill();
+   flash--;
   }
+  ctx.fillStyle="#eee";
+  ctx.fillRect(W/2-2,H/2-10,4,20);
+  ctx.fillRect(W/2-10,H/2-2,20,4);
  }
  requestAnimationFrame(draw);
 }
 
 document.getElementById('start').onclick=()=>{
- player={x:1.5,y:1.5,a:0,hp:100};
- kills=0;
- keys={};
- spawn();
- document.getElementById('hp').textContent='100';
- document.getElementById('kills').textContent='0';
+ player={x:1.5,y:1.5,a:0,hp:100,hasKey:false};
+ kills=0;weapon=0;
+ ammo=[Infinity,30,60];
+ setupFloor(0);
+ document.getElementById('hp').textContent=100;
+ document.getElementById('kills').textContent=0;
+ document.getElementById('key').textContent="NO";
+ document.getElementById('weaponName').textContent="PISTOL";
  document.getElementById('screen').style.display='none';
  started=true;
 };
-requestAnimationFrame(draw);
 setInterval(update,16);
+requestAnimationFrame(draw);
 </script>
 </body>
 </html>

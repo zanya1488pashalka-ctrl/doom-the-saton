@@ -1,0 +1,191 @@
+
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#130909">
+<title>DOOM: THE SATAN</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#100707;color:white;font-family:Arial;overflow:hidden;touch-action:none}
+canvas{display:block;width:100vw;height:100dvh}
+#hud{position:fixed;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;font-weight:bold;text-shadow:0 2px 5px black;pointer-events:none}
+#controls{position:fixed;bottom:18px;left:0;right:0;display:flex;justify-content:space-between;padding:0 18px;align-items:end}
+.group{display:grid;grid-template-columns:repeat(3,58px);gap:7px}
+button{width:58px;height:58px;border:1px solid #a64b35;border-radius:13px;background:#341511dd;color:white;font-size:22px;font-weight:bold;touch-action:none}
+button:active{background:#a52b17}
+#shoot{width:85px;height:85px;border-radius:50%;background:#8c1d12;font-size:16px}
+#start{position:fixed;inset:0;background:#130707ed;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:20px}
+#start h1{font-size:42px;color:#e33;text-shadow:0 0 20px red}
+#start button{width:180px;height:60px}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud">
+ <span>❤️ HP: <b id="hp">100</b></span>
+ <span>☠️ DEMONS: <b id="kills">0</b></span>
+ <span>AMMO: ∞</span>
+</div>
+<div id="controls">
+ <div class="group">
+  <span></span><button id="forward">▲</button><span></span>
+  <button id="left">◀</button><button id="back">▼</button><button id="right">▶</button>
+ </div>
+ <div style="display:flex;gap:9px">
+  <button id="turnL">↶</button>
+  <button id="turnR">↷</button>
+  <button id="shoot">FIRE</button>
+ </div>
+</div>
+<div id="start">
+ <h1>DOOM:<br>THE SATAN</h1>
+ <p>HELL IS WAITING FOR YOU</p>
+ <p>CLASSIC RETRO 3D</p>
+ <button id="play">START GAME</button>
+</div>
+<script>
+const canvas=document.getElementById('game');
+const ctx=canvas.getContext('2d');
+let W,H;
+function resize(){W=canvas.width=innerWidth;H=canvas.height=innerHeight}
+resize();addEventListener('resize',resize);
+
+const map=[
+"111111111111111",
+"100000000000001",
+"101110010111101",
+"100000010000001",
+"101011110110101",
+"100010000010001",
+"111010110010111",
+"100000000000001",
+"101110111011101",
+"100000000000001",
+"111111111111111"
+];
+let player={x:2.5,y:2.5,a:0.3,hp:100};
+let monsters=[],kills=0,started=false,depth=[];
+function spawn(){
+ monsters=[];
+ for(let i=0;i<9;i++){
+  let x,y;
+  do{x=1+Math.random()*12;y=1+Math.random()*8}
+  while(map[Math.floor(y)]?.[Math.floor(x)]!=='0' || Math.hypot(x-player.x,y-player.y)<3);
+  monsters.push({x,y,alive:true});
+ }
+}
+function wall(x,y){return map[Math.floor(y)]?.[Math.floor(x)]!=='0'}
+function cast(a){
+ let d=0.02;
+ while(d<18){
+  let x=player.x+Math.cos(a)*d;
+  let y=player.y+Math.sin(a)*d;
+  if(wall(x,y))return d;
+  d+=0.035;
+ }
+ return 18;
+}
+function render(){
+ if(!started)return;
+ ctx.fillStyle='#28202a';ctx.fillRect(0,0,W,H/2);
+ let g=ctx.createLinearGradient(0,H/2,0,H);
+ g.addColorStop(0,'#33221c');g.addColorStop(1,'#080505');
+ ctx.fillStyle=g;ctx.fillRect(0,H/2,W,H/2);
+ let fov=Math.PI/2.8;
+ for(let x=0;x<W;x+=3){
+  let a=player.a+(x/W-.5)*fov;
+  let d=cast(a)*Math.cos(a-player.a);
+  depth[Math.floor(x/3)]=d;
+  let h=Math.min(H,H/(d+0.05));
+  let shade=Math.max(25,150-d*12);
+  ctx.fillStyle=`rgb(${shade},${shade*.45},${shade*.3})`;
+  ctx.fillRect(x,(H-h)/2,4,h);
+  ctx.fillStyle='#160c0a';
+  ctx.fillRect(x,(H-h)/2,4,3);
+ }
+ monsters.filter(m=>m.alive).forEach(m=>{
+  let dx=m.x-player.x,dy=m.y-player.y;
+  let dist=Math.hypot(dx,dy);
+  let angle=Math.atan2(dy,dx)-player.a;
+  while(angle>Math.PI)angle-=Math.PI*2;
+  while(angle< -Math.PI)angle+=Math.PI*2;
+  if(Math.abs(angle)>fov/2+.15)return;
+  let sx=W/2+angle/fov*W;
+  let size=Math.min(H,H/(dist+.1)*.65);
+  let wallDist=cast(Math.atan2(dy,dx));
+  if(dist>wallDist+.15)return;
+  ctx.fillStyle='#7b1010';
+  ctx.beginPath();ctx.arc(sx,H/2,size*.22,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#ff3020';
+  ctx.fillRect(sx-size*.13,H/2-size*.05,size*.08,size*.04);
+  ctx.fillRect(sx+size*.05,H/2-size*.05,size*.08,size*.04);
+  ctx.fillStyle='#301010';
+  ctx.fillRect(sx-size*.25,H/2+size*.15,size*.5,size*.35);
+ });
+ ctx.fillStyle='#aaa';
+ ctx.fillRect(W/2-2,H/2-12,4,24);
+ ctx.fillRect(W/2-12,H/2-2,24,4);
+ requestAnimationFrame(render);
+}
+let keys={};
+function bind(id,key){
+ let b=document.getElementById(id);
+ b.onpointerdown=e=>{e.preventDefault();keys[key]=true};
+ b.onpointerup=b.onpointercancel=b.onpointerleave=()=>keys[key]=false;
+}
+bind('forward','f');bind('back','b');
+bind('left','l');bind('right','r');
+bind('turnL','tl');bind('turnR','tr');
+function update(){
+ if(!started)return;
+ if(keys.tl)player.a-=.045;
+ if(keys.tr)player.a+=.045;
+ let speed=.055;
+ let dx=0,dy=0;
+ if(keys.f){dx+=Math.cos(player.a)*speed;dy+=Math.sin(player.a)*speed}
+ if(keys.b){dx-=Math.cos(player.a)*speed;dy-=Math.sin(player.a)*speed}
+ if(keys.l){dx+=Math.cos(player.a-Math.PI/2)*speed;dy+=Math.sin(player.a-Math.PI/2)*speed}
+ if(keys.r){dx+=Math.cos(player.a+Math.PI/2)*speed;dy+=Math.sin(player.a+Math.PI/2)*speed}
+ if(!wall(player.x+dx,player.y))player.x+=dx;
+ if(!wall(player.x,player.y+dy))player.y+=dy;
+ monsters.forEach(m=>{
+  if(!m.alive)return;
+  let d=Math.hypot(m.x-player.x,m.y-player.y);
+  if(d<.65){player.hp-=.15;document.getElementById('hp').textContent=Math.max(0,Math.floor(player.hp))}
+ });
+ if(player.hp<=0){
+  started=false;
+  document.querySelector('#start h1').textContent='GAME OVER';
+  document.getElementById('start').style.display='flex';
+ }
+}
+setInterval(update,16);
+document.getElementById('shoot').onpointerdown=e=>{
+ e.preventDefault();
+ if(!started)return;
+ let target=null,best=.5;
+ monsters.forEach(m=>{
+  if(!m.alive)return;
+  let a=Math.atan2(m.y-player.y,m.x-player.x)-player.a;
+  while(a>Math.PI)a-=Math.PI*2;
+  while(a< -Math.PI)a+=Math.PI*2;
+  let d=Math.hypot(m.x-player.x,m.y-player.y);
+  if(Math.abs(a)<.14&&d>best&&d<8&&cast(Math.atan2(m.y-player.y,m.x-player.x))>d-.2){
+   target=m;best=d;
+  }
+ });
+ if(target){target.alive=false;kills++;document.getElementById('kills').textContent=kills}
+};
+document.getElementById('play').onclick=()=>{
+ player={x:2.5,y:2.5,a:0.3,hp:100};
+ kills=0;spawn();started=true;
+ document.getElementById('hp').textContent='100';
+ document.getElementById('kills').textContent='0';
+ document.getElementById('start').style.display='none';
+ render();
+};
+</script>
+</body>
+</html>

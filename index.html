@@ -1,56 +1,63 @@
 
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="theme-color" content="#130909">
+<meta name="theme-color" content="#100707">
 <title>DOOM: THE SATAN</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#100707;color:white;font-family:Arial;overflow:hidden;touch-action:none}
-canvas{display:block;width:100vw;height:100dvh}
-#hud{position:fixed;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;font-weight:bold;text-shadow:0 2px 5px black;pointer-events:none}
-#controls{position:fixed;bottom:18px;left:0;right:0;display:flex;justify-content:space-between;padding:0 18px;align-items:end}
-.group{display:grid;grid-template-columns:repeat(3,58px);gap:7px}
-button{width:58px;height:58px;border:1px solid #a64b35;border-radius:13px;background:#341511dd;color:white;font-size:22px;font-weight:bold;touch-action:none}
-button:active{background:#a52b17}
-#shoot{width:85px;height:85px;border-radius:50%;background:#8c1d12;font-size:16px}
-#start{position:fixed;inset:0;background:#130707ed;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:20px}
-#start h1{font-size:42px;color:#e33;text-shadow:0 0 20px red}
-#start button{width:180px;height:60px}
+canvas{width:100vw;height:100dvh;display:block}
+#hud{position:fixed;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;font-weight:bold;text-shadow:2px 2px 4px black;pointer-events:none;font-size:14px}
+#controls{position:fixed;bottom:15px;left:0;right:0;display:flex;justify-content:space-between;align-items:end;padding:0 12px}
+.pad{display:grid;grid-template-columns:repeat(3,52px);gap:5px}
+button{height:52px;width:52px;background:#391710dd;border:2px solid #b44b29;color:white;border-radius:12px;font-size:20px;font-weight:bold;touch-action:none}
+button:active{background:#bd341b}
+#actions{display:flex;gap:5px;align-items:end}
+#fire{width:72px;height:72px;border-radius:50%;background:#a51d12;font-size:15px}
+#screen{position:fixed;inset:0;background:#100707ed;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;gap:12px}
+#screen h1{font-size:48px;color:#e43a1e;text-shadow:0 0 22px red;margin:0}
+#screen button{width:180px;height:60px;background:#a52516}
+#screen p{color:#ddd;line-height:1.5}
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
 <div id="hud">
- <span>❤️ HP: <b id="hp">100</b></span>
- <span>☠️ DEMONS: <b id="kills">0</b></span>
- <span>AMMO: ∞</span>
+<span>HP: <b id="hp">100</b></span>
+<span>DOOM: THE SATAN</span>
+<span>KILLS: <b id="kills">0</b></span>
 </div>
 <div id="controls">
- <div class="group">
-  <span></span><button id="forward">▲</button><span></span>
-  <button id="left">◀</button><button id="back">▼</button><button id="right">▶</button>
- </div>
- <div style="display:flex;gap:9px">
-  <button id="turnL">↶</button>
-  <button id="turnR">↷</button>
-  <button id="shoot">FIRE</button>
- </div>
+<div class="pad">
+<span></span><button id="forward">▲</button><span></span>
+<button id="left">◀</button><button id="back">▼</button><button id="right">▶</button>
 </div>
-<div id="start">
- <h1>DOOM:<br>THE SATAN</h1>
- <p>HELL IS WAITING FOR YOU</p>
- <p>CLASSIC RETRO 3D</p>
- <button id="play">START GAME</button>
+<div id="actions">
+<button id="turnL">↶</button>
+<button id="turnR">↷</button>
+<button id="fire">FIRE</button>
+</div>
+</div>
+<div id="screen">
+<h1>DOOM</h1>
+<h2>THE SATAN</h2>
+<p>WELCOME TO HELL<br>Survive the demon invasion.</p>
+<button id="start">START GAME</button>
 </div>
 <script>
 const canvas=document.getElementById('game');
 const ctx=canvas.getContext('2d');
-let W,H;
-function resize(){W=canvas.width=innerWidth;H=canvas.height=innerHeight}
-resize();addEventListener('resize',resize);
+let W=0,H=0;
+function resize(){
+ W=canvas.width=Math.floor(innerWidth*devicePixelRatio);
+ H=canvas.height=Math.floor(innerHeight*devicePixelRatio);
+ ctx.setTransform(1,0,0,1,0,0);
+}
+resize();
+addEventListener('resize',resize);
 
 const map=[
 "111111111111111",
@@ -65,84 +72,57 @@ const map=[
 "100000000000001",
 "111111111111111"
 ];
-let player={x:2.5,y:2.5,a:0.3,hp:100};
-let monsters=[],kills=0,started=false,depth=[];
-function spawn(){
- monsters=[];
- for(let i=0;i<9;i++){
-  let x,y;
-  do{x=1+Math.random()*12;y=1+Math.random()*8}
-  while(map[Math.floor(y)]?.[Math.floor(x)]!=='0' || Math.hypot(x-player.x,y-player.y)<3);
-  monsters.push({x,y,alive:true});
- }
+
+let player={x:1.5,y:1.5,a:0,hp:100};
+let monsters=[];
+let kills=0,started=false;
+let keys={};
+const fov=Math.PI/2.7;
+
+function wall(x,y){
+ return map[Math.floor(y)]?.[Math.floor(x)]!=='0';
 }
-function wall(x,y){return map[Math.floor(y)]?.[Math.floor(x)]!=='0'}
-function cast(a){
+function distance(a){
  let d=0.02;
- while(d<18){
+ while(d<20){
   let x=player.x+Math.cos(a)*d;
   let y=player.y+Math.sin(a)*d;
   if(wall(x,y))return d;
-  d+=0.035;
+  d+=0.025;
  }
- return 18;
+ return 20;
 }
-function render(){
- if(!started)return;
- ctx.fillStyle='#28202a';ctx.fillRect(0,0,W,H/2);
- let g=ctx.createLinearGradient(0,H/2,0,H);
- g.addColorStop(0,'#33221c');g.addColorStop(1,'#080505');
- ctx.fillStyle=g;ctx.fillRect(0,H/2,W,H/2);
- let fov=Math.PI/2.8;
- for(let x=0;x<W;x+=3){
-  let a=player.a+(x/W-.5)*fov;
-  let d=cast(a)*Math.cos(a-player.a);
-  depth[Math.floor(x/3)]=d;
-  let h=Math.min(H,H/(d+0.05));
-  let shade=Math.max(25,150-d*12);
-  ctx.fillStyle=`rgb(${shade},${shade*.45},${shade*.3})`;
-  ctx.fillRect(x,(H-h)/2,4,h);
-  ctx.fillStyle='#160c0a';
-  ctx.fillRect(x,(H-h)/2,4,3);
- }
- monsters.filter(m=>m.alive).forEach(m=>{
-  let dx=m.x-player.x,dy=m.y-player.y;
-  let dist=Math.hypot(dx,dy);
-  let angle=Math.atan2(dy,dx)-player.a;
-  while(angle>Math.PI)angle-=Math.PI*2;
-  while(angle< -Math.PI)angle+=Math.PI*2;
-  if(Math.abs(angle)>fov/2+.15)return;
-  let sx=W/2+angle/fov*W;
-  let size=Math.min(H,H/(dist+.1)*.65);
-  let wallDist=cast(Math.atan2(dy,dx));
-  if(dist>wallDist+.15)return;
-  ctx.fillStyle='#7b1010';
-  ctx.beginPath();ctx.arc(sx,H/2,size*.22,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#ff3020';
-  ctx.fillRect(sx-size*.13,H/2-size*.05,size*.08,size*.04);
-  ctx.fillRect(sx+size*.05,H/2-size*.05,size*.08,size*.04);
-  ctx.fillStyle='#301010';
-  ctx.fillRect(sx-size*.25,H/2+size*.15,size*.5,size*.35);
- });
- ctx.fillStyle='#aaa';
- ctx.fillRect(W/2-2,H/2-12,4,24);
- ctx.fillRect(W/2-12,H/2-2,24,4);
- requestAnimationFrame(render);
+function spawn(){
+ monsters=[];
+ const spots=[
+ [5.5,1.5],[9.5,1.5],[13.5,3.5],
+ [3.5,3.5],[1.5,7.5],[6.5,7.5],
+ [11.5,7.5],[8.5,9.5],[13.5,9.5]
+ ];
+ spots.forEach(([x,y])=>monsters.push({x,y,alive:true}));
 }
-let keys={};
 function bind(id,key){
- let b=document.getElementById(id);
- b.onpointerdown=e=>{e.preventDefault();keys[key]=true};
- b.onpointerup=b.onpointercancel=b.onpointerleave=()=>keys[key]=false;
+ const b=document.getElementById(id);
+ b.addEventListener('pointerdown',e=>{
+  e.preventDefault();keys[key]=true;
+ });
+ function release(){keys[key]=false}
+ b.addEventListener('pointerup',release);
+ b.addEventListener('pointercancel',release);
+ b.addEventListener('pointerleave',release);
 }
-bind('forward','f');bind('back','b');
-bind('left','l');bind('right','r');
-bind('turnL','tl');bind('turnR','tr');
+bind('forward','f');
+bind('back','b');
+bind('left','l');
+bind('right','r');
+bind('turnL','tl');
+bind('turnR','tr');
+
 function update(){
  if(!started)return;
- if(keys.tl)player.a-=.045;
- if(keys.tr)player.a+=.045;
- let speed=.055;
+ const speed=0.045;
+ if(keys.tl)player.a-=0.045;
+ if(keys.tr)player.a+=0.045;
  let dx=0,dy=0;
  if(keys.f){dx+=Math.cos(player.a)*speed;dy+=Math.sin(player.a)*speed}
  if(keys.b){dx-=Math.cos(player.a)*speed;dy-=Math.sin(player.a)*speed}
@@ -150,42 +130,134 @@ function update(){
  if(keys.r){dx+=Math.cos(player.a+Math.PI/2)*speed;dy+=Math.sin(player.a+Math.PI/2)*speed}
  if(!wall(player.x+dx,player.y))player.x+=dx;
  if(!wall(player.x,player.y+dy))player.y+=dy;
+
  monsters.forEach(m=>{
   if(!m.alive)return;
   let d=Math.hypot(m.x-player.x,m.y-player.y);
-  if(d<.65){player.hp-=.15;document.getElementById('hp').textContent=Math.max(0,Math.floor(player.hp))}
+  if(d<0.65){
+   player.hp=Math.max(0,player.hp-0.12);
+   document.getElementById('hp').textContent=Math.floor(player.hp);
+  }
  });
  if(player.hp<=0){
   started=false;
-  document.querySelector('#start h1').textContent='GAME OVER';
-  document.getElementById('start').style.display='flex';
+  document.querySelector('#screen h1').textContent='GAME OVER';
+  document.querySelector('#screen p').textContent='You were defeated.';
+  document.getElementById('screen').style.display='flex';
  }
 }
-setInterval(update,16);
-document.getElementById('shoot').onpointerdown=e=>{
- e.preventDefault();
+
+function shoot(){
  if(!started)return;
- let target=null,best=.5;
+ let target=null,nearest=8;
  monsters.forEach(m=>{
   if(!m.alive)return;
-  let a=Math.atan2(m.y-player.y,m.x-player.x)-player.a;
-  while(a>Math.PI)a-=Math.PI*2;
-  while(a< -Math.PI)a+=Math.PI*2;
-  let d=Math.hypot(m.x-player.x,m.y-player.y);
-  if(Math.abs(a)<.14&&d>best&&d<8&&cast(Math.atan2(m.y-player.y,m.x-player.x))>d-.2){
-   target=m;best=d;
+  let dx=m.x-player.x,dy=m.y-player.y;
+  let d=Math.hypot(dx,dy);
+  let a=Math.atan2(dy,dx)-player.a;
+  a=Math.atan2(Math.sin(a),Math.cos(a));
+  if(Math.abs(a)<0.12&&d<nearest&&distance(Math.atan2(dy,dx))>d-0.2){
+   target=m;nearest=d;
   }
  });
- if(target){target.alive=false;kills++;document.getElementById('kills').textContent=kills}
-};
-document.getElementById('play').onclick=()=>{
- player={x:2.5,y:2.5,a:0.3,hp:100};
- kills=0;spawn();started=true;
+ if(target){
+  target.alive=false;
+  kills++;
+  document.getElementById('kills').textContent=kills;
+ }
+}
+document.getElementById('fire').addEventListener('pointerdown',e=>{
+ e.preventDefault();shoot();
+});
+
+function draw(){
+ if(started){
+  ctx.fillStyle='#251a20';
+  ctx.fillRect(0,0,W,H/2);
+  let floor=ctx.createLinearGradient(0,H/2,0,H);
+  floor.addColorStop(0,'#514039');
+  floor.addColorStop(1,'#090606');
+  ctx.fillStyle=floor;
+  ctx.fillRect(0,H/2,W,H/2);
+
+  for(let x=0;x<W;x+=3){
+   let angle=player.a+(x/W-.5)*fov;
+   let d=distance(angle)*Math.cos(angle-player.a);
+   let height=Math.min(H,H/(d+0.1));
+   let shade=Math.max(20,175-d*13);
+   ctx.fillStyle=`rgb(${shade},${shade*.42},${shade*.25})`;
+   ctx.fillRect(x,(H-height)/2,4,height);
+   ctx.fillStyle='rgba(0,0,0,.25)';
+   ctx.fillRect(x,(H-height)/2,4,3);
+  }
+
+  let visible=monsters.filter(m=>m.alive).map(m=>{
+   let dx=m.x-player.x,dy=m.y-player.y;
+   let d=Math.hypot(dx,dy);
+   let a=Math.atan2(dy,dx)-player.a;
+   a=Math.atan2(Math.sin(a),Math.cos(a));
+   return {m,d,a};
+  }).sort((a,b)=>b.d-a.d);
+
+  visible.forEach(o=>{
+   if(Math.abs(o.a)>fov/2+0.1)return;
+   let sx=W/2+Math.tan(o.a)/Math.tan(fov/2)*W/2;
+   let size=Math.min(H,H/(o.d+0.1)*0.65);
+   let angle=Math.atan2(o.m.y-player.y,o.m.x-player.x);
+   if(distance(angle)<o.d-0.15)return;
+   let y=H/2-size*.3;
+
+   ctx.fillStyle='#48120e';
+   ctx.beginPath();
+   ctx.ellipse(sx,y+size*.55,size*.25,size*.4,0,0,Math.PI*2);
+   ctx.fill();
+
+   ctx.fillStyle='#a62a19';
+   ctx.beginPath();
+   ctx.arc(sx,y+size*.23,size*.22,0,Math.PI*2);
+   ctx.fill();
+
+   ctx.fillStyle='#ff4b1b';
+   ctx.fillRect(sx-size*.13,y+size*.2,size*.08,size*.055);
+   ctx.fillRect(sx+size*.05,y+size*.2,size*.08,size*.055);
+
+   ctx.fillStyle='#d2a08a';
+   ctx.fillRect(sx-size*.08,y+size*.34,size*.16,size*.035);
+  });
+
+  // Weapon
+  ctx.fillStyle='#25272a';
+  ctx.fillRect(W/2-35,H-105,70,105);
+  ctx.fillStyle='#888';
+  ctx.fillRect(W/2-22,H-125,44,55);
+  ctx.fillStyle='#b6381c';
+  ctx.fillRect(W/2-9,H-135,18,30);
+  ctx.fillStyle='#aaa';
+  ctx.fillRect(W/2-2,H/2-13,4,26);
+  ctx.fillRect(W/2-13,H/2-2,26,4);
+
+  if(monsters.every(m=>!m.alive)){
+   ctx.fillStyle='white';
+   ctx.font=`bold ${Math.floor(H*.045)}px Arial`;
+   ctx.textAlign='center';
+   ctx.fillText('AREA CLEARED!',W/2,H*.35);
+  }
+ }
+ requestAnimationFrame(draw);
+}
+
+document.getElementById('start').onclick=()=>{
+ player={x:1.5,y:1.5,a:0,hp:100};
+ kills=0;
+ keys={};
+ spawn();
  document.getElementById('hp').textContent='100';
  document.getElementById('kills').textContent='0';
- document.getElementById('start').style.display='none';
- render();
+ document.getElementById('screen').style.display='none';
+ started=true;
 };
+requestAnimationFrame(draw);
+setInterval(update,16);
 </script>
 </body>
 </html>
